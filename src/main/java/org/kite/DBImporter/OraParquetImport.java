@@ -1,11 +1,15 @@
 package org.kite.DBImporter;
 
+
+//JDBC
 import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import oracle.sql.*;
+
 
 import java.text.SimpleDateFormat;
 
@@ -17,21 +21,32 @@ import java.io.IOException;
 
 
 
-import oracle.sql.*; 
-
+//Utils
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
 
 import java.lang.Integer;
 import java.lang.Double;
 import java.util.Date;
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
+import java.math.BigInteger;
 
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
+
+
+
+//Kite related
 
 import org.kitesdk.data.Dataset;
-
-import java.util.Random;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.hadoop.conf.Configured;
@@ -43,18 +58,8 @@ import org.kitesdk.data.DatasetWriter;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.Formats;
 import org.kitesdk.data.CompressionType;
-
 import static org.apache.avro.generic.GenericData.Record;
-import  java.math.BigInteger;
 
-import java.util.HashMap;
-import java.util.Map;
-
-
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.TimeZone;
 
 public class OraParquetImport{
 
@@ -64,6 +69,9 @@ public class OraParquetImport{
 	private static final String DB_URI = System.getProperty("jdbcURI", "Null");
 	private static final String DB_SCHEMA = System.getProperty("schema", "Null");
 	private static final String DB_PASS = System.getProperty("password", "Null");
+	private static final int DB_FETCH_SIZE = Integer.parseInt(System.getProperty("fetch_size", "10000"));
+        private static final int THREAD_BATCH_SIZE = Integer.parseInt(System.getProperty("batch_size", "10000"));
+
 
 
         //checks
@@ -109,15 +117,6 @@ public class OraParquetImport{
         public void run(String[] argv) throws IOException, NumberFormatException
         {
 
-
-
-
-  //                SQL= "select * from data_vectornumeric";
-//		SQL="select * from meetup.data_numeric where utc_stamp between trunc(sysdate-3) and trunc(sysdate-2)";
-//		SQL="select * from lhclog.data_numeric where utc_stamp between trunc(sysdate-3) and trunc(sysdate-2)";
-//		SQL="select 355.34666 a, -234.76421 b,.00005091 c, 10000 d from dual";
-//		SQL="select * from sys.test_v ";
-//		SQL="select rowid,variable_id,utc_stamp,value from lhclog.data_vectornumeric partition(PART_DVN_20160702)";
 
 
 
@@ -359,7 +358,8 @@ public class OraParquetImport{
 
 				
 		   }
-		   rowDetails.put("class", mapClassName(meta.getColumnClassName(i)));
+//		   rowDetails.put("class", mapClassName(meta.getColumnClassName(i)));
+		   rowDetails.put("class", meta.getColumnClassName(i));
                    rowDetails.put("avro",mapType2Avro(meta.getColumnClassName(i),meta.getColumnLabel(i)));
                
                        
@@ -369,13 +369,13 @@ public class OraParquetImport{
                 }
 
 	}
-	private String mapClassName(String cls)
+/*	private String mapClassName(String cls)
 	{
 		if (cls=="oracle.jdbc.OracleArray")
 			return "java.sql.Array";
 
 		return cls;
-	}
+	}*/
         public String getAvroSchema() throws SQLException
 	{
 	     
@@ -398,7 +398,7 @@ public class OraParquetImport{
              AvroSchema+="]}";
 		
 
-             System.out.println(AvroSchema);
+//             System.out.println(AvroSchema);
 	     return AvroSchema;
 		
 	}
@@ -406,7 +406,6 @@ public class OraParquetImport{
 	{
 		String ret=null;
 
-//		System.out.println(type);
                 if(type.equals("oracle.jdbc.OracleArray")) ret= "{\"type\": \"array\", \"items\": \"double\"}";
 
 		if(name.equals("VARIABLE_ID")) {
@@ -443,7 +442,7 @@ public class OraParquetImport{
       private DataWriter dw;
       private boolean writeData=true;
       private boolean readData=true;
-      private int batchSize=10000;
+      private int batchSize=OraParquetImport.THREAD_BATCH_SIZE;
       private String DatasetURI;
 
       WorkerThread(String name,SyncDataSource s,String URI) throws IOException{
@@ -481,65 +480,30 @@ public class OraParquetImport{
             try{
  
             
-              if (batchSize>1) {//BATCH MODE
                  byte[][][] rows = new byte[batchSize][sds.ncols][];
-		 String col1,col2,col3;
                  int rows_num=batchSize;
 
-	     try{
                  while(rows_num == batchSize){ 
 			rows_num = sds.nextRow(rows, batchSize,readData);
 			for(int i = 0; i < rows_num; i++){
 				byte[][] rowcols = new byte[sds.ncols][];
 				for(int j=0; j <sds.ncols; j++){
 					
-                                        Class rowClass = Class.forName(sds.RowSchema.get(j+1).get("class"));
-					//rowcols[j] = rowClass.cast(rows[i][j]);
                                         rowcols[j] =  rows[i][j];
                                         
 				}
-//			     col1 = new String(rows[i][0], StandardCharsets.UTF_8);
-//                             col2 = new String(rows[i][1], StandardCharsets.UTF_8);
-//                             col3 = new String(rows[i][2], StandardCharsets.UTF_8);
 
                                dw.write(rowcols);
 
 			} 
-		}
-	       }//try
-	       catch (ClassNotFoundException cnfe)
-		{
-			System.out.println(cnfe.getMessage());
-			
-			return;
-		}
+		    }
 		
-	      }
-              else {//CLASIC MODE
-		 byte[][] cols = new byte[3][];
-
-                 String col1,col2,col3;
-		 
-                 while(sds.next(cols,readData)) {
-             
-		     if(writeData)
-		     {
-	                     col1 = new String(cols[0], StandardCharsets.UTF_8);
-	                     col2 = new String(cols[1], StandardCharsets.UTF_8);
-	                     col3 = new String(cols[2], StandardCharsets.UTF_8);
-		     
-		     	     dw.write(col1,col2,col3);
-		     }
-                     cols=new byte[3][];
-
-                  }//while
-                }//else
-              }//try            
-              catch (SQLException e) {
+		}//try            
+		catch (SQLException e) {
                         System.out.println("Failed to execute statement! "+ e.toString());
 
 
-              }
+		}
 		finally {
       			if (dw != null) {
 		            dw.close();
@@ -673,9 +637,7 @@ public class OraParquetImport{
 				odata = castTimestamp(data);
 				break;
 			case "LHCLOG.VECTORNUMERIC":
-				//ARRAY v = Datum.Datum(data);
 
-				//odata = Arrays.asList(((ARRAY)v).getDoubleArray());
 
 				odata = castArray(data,"NUMRIC");
 				break;
@@ -684,60 +646,12 @@ public class OraParquetImport{
 		return odata;
 		
 	}
-/*	private Object castType(byte[] data,String type)
-        {
-		Object cdata=null;
-		if(type.equals("CHAR")) cdata = castVarchar(data);
-		else
-		if(type.equals("NUMBER")) cdata = castNumber(data);
-		else
-                if(type.equals("TIMESTAMP")) cdata = castTimestamp(data);
-		else 
-		if (type.equals("LHCLOG.VECTORNUMERIC")) cdata = castArrayofNumbers(data);
-		else cdata=(Object)data;
-
-		return cdata;
-	}
-*/
 	 private List<Object> castArray(byte[] data,String type)
 	 {
 		OraArray arr = new OraArray(data,type);
 		return arr.elements;
 	 }
-/*	 private List<Object> castArrayofNumbers(byte[] data){
-	//	System.out.println(new String(data,StandardCharsets.UTF_8));
-//                return (Object)new String(data,StandardCharsets.UTF_8);
-		int value=0;
-		int elementLength=0;
-		List<Object> list = new ArrayList<Object>();
-		try{
-			for (int i=getArrayStartPos(data);i<data.length;i++)
-			{
-				
-				value=getInt(data[i]);
-			        	
-				//System.out.println(value);	
-				list.add( castNumber(Arrays.copyOfRange(data, i+1, i+value+1)) );
-				i+=value;
-			}
-			//System.out.println(list);
 
-		} catch(NumberFormatException ex)
-		{
-			System.out.println(ex.getMessage());	
-			dumpRawArray(data);
-			throw ex;
-		}
-		catch (NullPointerException npe)
-		{
-			System.out.println(npe.getMessage());
-                        dumpRawArray(data);
-			throw npe;
-
-		}
-			return  list;
-        }
-*/
 	private Object castVarchar(byte[] data){
 		return (Object)new String(data,StandardCharsets.UTF_8);
 	}
@@ -849,6 +763,7 @@ public class OraParquetImport{
 		writer.close();
 	}
    }
+
    class OraArray
    {
 	private byte[] raw;
