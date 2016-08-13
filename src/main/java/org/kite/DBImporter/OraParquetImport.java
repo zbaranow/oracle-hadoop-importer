@@ -70,7 +70,7 @@ public class OraParquetImport{
 	private static final String DB_SCHEMA = System.getProperty("schema", "Null");
 	private static final String DB_PASS = System.getProperty("password", "Null");
 	private static final int DB_FETCH_SIZE = Integer.parseInt(System.getProperty("fetch_size", "10000"));
-        private static final int THREAD_BATCH_SIZE = Integer.parseInt(System.getProperty("batch_size", "10000"));
+        public static final int THREAD_BATCH_SIZE = Integer.parseInt(System.getProperty("batch_size", "10000"));
 
 
 
@@ -150,22 +150,40 @@ public class OraParquetImport{
 
 				Thread.sleep(5000);
 			     }
-                             catch (InterruptedException e){}
+                              catch (InterruptedException e){}
 
 				
                         }
 
+
                    }
 		   
-		   for (WorkerThread th : threadList)
+		   boolean terminated=false;
+		   Statistics stats = new Statistics();
+		   
+		   while(!terminated)
 		   {
-			 try{
-                            th.join();
-                          }
-                           catch (InterruptedException e){}
+			try{
+				Thread.sleep(10000);
+			}
+			catch (InterruptedException e){}
+			stats.updateStat("RowsLoaded",WorkerThread.getStats(),StatType.CUMULATIVE);
+			System.out.println(stats.getFormattedStat("RowsLoaded"));
+			   terminated=true;
+			   for (WorkerThread th : threadList)
+			   {
+			// try{
+                        //    th.join();
+                        //  }
+                        //   catch (InterruptedException e){}
+				if(th.getState()!=Thread.State.TERMINATED)
+				{
+					terminated=false;
+					break;
+				}
 
+			   }
 		   }
-
                 }
                 catch (SQLException e) {
                         System.out.println("Failed to execute statement! "+ e.toString());
@@ -179,12 +197,78 @@ public class OraParquetImport{
                 }
         }
 
-        public static void reportStats(long start,long end,int value) {
+
+
+        public static void reportStats(long start,long end,long value) {
                 long delta = end-start;
                 System.out.println( value + " rows read in "+delta+"ms AVG:"+String.format("%.02f", value/((float)delta/1000))+" rows per sec");
 
         }
-   
+   public enum StatType
+        { CUMULATIVE,TEXT,PERCENTAGE    }
+
+   class Statistics
+   {
+	Map<String,ArrayList<Statistic>> objectStats = null;
+	Map<String,StatType> statsType = null;
+	long systemStart;
+
+	Statistics()
+	{
+		systemStart = System.currentTimeMillis();
+	}
+	Statistics(long startTime)
+	{
+		systemStart = startTime;
+	}
+	void updateStat(String name,Object value,StatType stype)
+	{
+		if(statsType==null)
+			statsType = new HashMap<String,StatType>();
+
+		if(!statsType.containsKey(name))
+			statsType.put(name,stype);
+
+		if(objectStats==null)
+			objectStats = new HashMap<String,ArrayList<Statistic>>();
+
+		if(!objectStats.containsKey(name))
+		{
+			objectStats.put(name,new ArrayList<Statistic>());
+		}
+		objectStats.get(name).add(new Statistic(value,System.currentTimeMillis()));
+		
+	}
+	public String getFormattedStat(String name)
+	{
+		//should check the type of stat
+		//assuming cumlative
+		String ret="";
+		if (objectStats.get(name).size()<2) return null;
+		switch(statsType.get(name))
+		{
+			case CUMULATIVE:
+				Statistic prev=objectStats.get(name).get(objectStats.get(name).size()-2);				
+                                Statistic current=objectStats.get(name).get(objectStats.get(name).size()-1);
+				ret="Total "+name+": "+current.value+" in "+(System.currentTimeMillis()-systemStart)+"ms, Current rates:";
+				ret+=String.format("%.02f",((long)current.value-(long)prev.value)/((float)(current.updateTime-prev.updateTime)/1000));	
+
+				break;
+		}
+		return ret;
+	}
+	class Statistic
+	{
+		public long updateTime;
+		public Object value;
+		Statistic(Object svalue, long time)
+		{
+			value=svalue;
+			updateTime=time;
+		}
+	}
+        
+   }   
    class DBConnect
    {
 	Connection connection=null;
@@ -261,6 +345,7 @@ public class OraParquetImport{
 	}
 	
    }
+}
    class SyncDataSource
    {
 
@@ -433,7 +518,6 @@ public class OraParquetImport{
 
    }
 
-
    class WorkerThread implements Runnable {
 
       private Thread t;
@@ -444,6 +528,7 @@ public class OraParquetImport{
       private boolean readData=true;
       private int batchSize=OraParquetImport.THREAD_BATCH_SIZE;
       private String DatasetURI;
+      private static long rowsInserted=0;
 
       WorkerThread(String name,SyncDataSource s,String URI) throws IOException{
         threadName = name;
@@ -451,11 +536,23 @@ public class OraParquetImport{
 	DatasetURI=URI;
         System.out.println("Creating " +  threadName );
       }
-
+      private static void updateStats(int rows)
+      {
+		   rowsInserted+=rows;
+      }
+      public static long getStats()
+      {
+	return rowsInserted;
+      }
+	
       public void join() throws InterruptedException
       {
         t.join();
       }
+	public Thread.State getState()
+	{
+		return t.getState();
+	}
       
 	public void run() {
          System.out.println("Running " +  threadName );
@@ -496,6 +593,7 @@ public class OraParquetImport{
                                dw.write(rowcols);
 
 			} 
+		        updateStats(rows_num);
 		    }
 		
 		}//try            
@@ -529,7 +627,7 @@ public class OraParquetImport{
 
 
    }
-}
+
 
    class DataWriter{
 
@@ -571,13 +669,15 @@ public class OraParquetImport{
                 .compressionType(CompressionType.Snappy)
                 .build();
 
-		try{
+		synchronized(this){
+			try{
 			//check if exists
-			ds=Datasets.load(DataSetURI,Record.class);
-		}
-		catch(Exception e)
-		{	
-			CreateDataset();
+				ds=Datasets.load(DataSetURI,Record.class);
+			}
+			catch(Exception e)
+			{	
+				CreateDataset();
+			}
 		}
        }
 
