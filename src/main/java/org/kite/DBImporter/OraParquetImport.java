@@ -126,6 +126,8 @@ public class OraParquetImport{
                 
 		ResultSet rs = null;
 
+                Statistics stats = new Statistics();
+
 		try{
 
 		   connection.setDirectReads(true);
@@ -159,7 +161,6 @@ public class OraParquetImport{
                    }
 		   
 		   boolean terminated=false;
-		   Statistics stats = new Statistics();
 		   
 		   while(!terminated)
 		   {
@@ -182,9 +183,9 @@ public class OraParquetImport{
 					break;
 				}
 
-			   }
-		   }
-                }
+			   }//for
+		   }//while
+                }//try
                 catch (SQLException e) {
                         System.out.println("Failed to execute statement! "+ e.toString());
                         System.exit(1);
@@ -193,8 +194,27 @@ public class OraParquetImport{
 //              {}
                 finally {
                      connection.close();
-                     System.out.println("Job finished");
+//                     System.out.println("Job finished");
                 }
+
+		 try{
+                                Thread.sleep(5000);
+                }
+                catch (InterruptedException e){}
+                System.out.println(stats.getFormattedStat("RowsLoaded"));
+
+
+
+		if (WorkerThread.getSuccessfulThreads()==THREADS)
+		{
+			System.out.println("JOB FINISHED SUCCESSFULLY!");
+
+		}
+		else
+		{
+                        System.out.println("JOB FAILED SUCCESSFULLY!");
+
+		}
         }
 
 
@@ -250,8 +270,12 @@ public class OraParquetImport{
 			case CUMULATIVE:
 				Statistic prev=objectStats.get(name).get(objectStats.get(name).size()-2);				
                                 Statistic current=objectStats.get(name).get(objectStats.get(name).size()-1);
-				ret="Total "+name+": "+current.value+" in "+(System.currentTimeMillis()-systemStart)+"ms, Current rates:";
-				ret+=String.format("%.02f",((long)current.value-(long)prev.value)/((float)(current.updateTime-prev.updateTime)/1000));	
+				ret="Total "+name+": "+current.value+" in "+(System.currentTimeMillis()-systemStart)+"ms, ";
+				ret+= "Avg rate:"+String.format("%.02f",((long)current.value)/((float)(current.updateTime-systemStart)/1000))+" rows/s, ";
+
+				ret+="Last "+((current.updateTime-prev.updateTime)/1000)+"s rates:";
+				ret+=String.format("%.02f",((long)current.value-(long)prev.value)/((float)(current.updateTime-prev.updateTime)/1000))+" rows/s";
+					
 
 				break;
 		}
@@ -529,12 +553,25 @@ public class OraParquetImport{
       private int batchSize=OraParquetImport.THREAD_BATCH_SIZE;
       private String DatasetURI;
       private static long rowsInserted=0;
+      private static int threads_finished_ok=0;
+      private static int threads_started=0; 
+      private static boolean terminateAll = false;
+
 
       WorkerThread(String name,SyncDataSource s,String URI) throws IOException{
         threadName = name;
         sds=s;
 	DatasetURI=URI;
         System.out.println("Creating " +  threadName );
+      }
+      public static int getSuccessfulThreads()
+      {
+	return threads_finished_ok;
+      }
+
+      public static void terminateAll()
+      {
+	    terminateAll=true;
       }
       private static void updateStats(int rows)
       {
@@ -580,7 +617,7 @@ public class OraParquetImport{
                  byte[][][] rows = new byte[batchSize][sds.ncols][];
                  int rows_num=batchSize;
 
-                 while(rows_num == batchSize){ 
+                 while(rows_num == batchSize&&!terminateAll ){ 
 			rows_num = sds.nextRow(rows, batchSize,readData);
 			for(int i = 0; i < rows_num; i++){
 				byte[][] rowcols = new byte[sds.ncols][];
@@ -596,6 +633,7 @@ public class OraParquetImport{
 		        updateStats(rows_num);
 		    }
 		
+		  threads_finished_ok++;
 		}//try            
 		catch (SQLException e) {
                         System.out.println("Failed to execute statement! "+ e.toString());
@@ -607,7 +645,7 @@ public class OraParquetImport{
 		            dw.close();
 		        }
 		}  
-
+	 	
 
      }
 
@@ -620,6 +658,7 @@ public class OraParquetImport{
           {
             t = new Thread (this, threadName);
             t.start ();
+	    threads_started++;
 
           }
 
