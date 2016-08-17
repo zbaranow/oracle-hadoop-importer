@@ -51,6 +51,9 @@ public class OraDataDecoder
                         case NUMERIC:
                                 odata= OraSimpleTypeDecoder.castNumber(data);
                                 break;
+			case DECIMAL:
+				odata= OraSimpleTypeDecoder.castNumber(data);
+                                break;
                         case TIMESTAMP:
                                 odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;

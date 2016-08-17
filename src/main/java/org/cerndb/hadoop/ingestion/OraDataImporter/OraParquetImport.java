@@ -182,7 +182,8 @@ public class OraParquetImport{
 
 
                    }
-				   
+                   stats.updateStat("RowsLoaded",WorkerThread.getStats(),StatType.CUMULATIVE);
+	   
 		   boolean terminated=false;
 		   //watch loop; checking if all threads finished; collecting and printing runtime stats   
 		   while(!terminated)
