@@ -13,6 +13,7 @@ import org.cerndb.oracle.utils.OraDataDecoder;
 import org.cerndb.utils.SchemaFactory;
 import org.cerndb.utils.SchemaElement;
 import org.cerndb.utils.Schema;
+import org.cerndb.utils.DataType;
 
 
 
@@ -73,8 +74,8 @@ import static org.apache.avro.generic.GenericData.Record;
 		RowSchema = schema;
 	}
 
-       public void setDataSetURI(String URI) {DataSetURI = URI;}
-       public void setAvroSchema(String AvroSchema) {Schema = AvroSchema;}
+//       public void setDataSetURI(String URI) {DataSetURI = URI;}
+//       public void setAvroSchema(String AvroSchema) {Schema = AvroSchema;}
 
 
        public void CreateDataset() throws IOException{
@@ -116,12 +117,6 @@ import static org.apache.avro.generic.GenericData.Record;
        public void write(Record r){
 		writer.write(r);
 	}
-        public void write(String col1,String col2,String col3){
-		Record record = builder.set("col1", col1)
-            .set("col2", col2)
-            .set("col3",col3).build();
-	        writer.write(record);
-	}
 
 
 	public void write(byte[][] cols)
@@ -129,7 +124,9 @@ import static org.apache.avro.generic.GenericData.Record;
 		for (int i=0; i<RowSchema.root.size(); i++)
 		{
 			try{
-				builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i).elementType));
+//				builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i).elementType));
+                              builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i).elementInternalType));
+				
 			}
 			catch(ArrayIndexOutOfBoundsException e)
 			{

@@ -10,6 +10,8 @@
 package org.cerndb.oracle.utils;
 
 
+import org.cerndb.utils.DataType;
+
 //JDBC
 import oracle.sql.*;
 
@@ -38,30 +40,30 @@ import java.util.TimeZone;
 
 public class OraDataDecoder
    {
-	 public static Object castColType(byte[] data,String type)
+	 public static Object castColType(byte[] data,DataType type)
         {
                 Object odata=null;
                 switch(type)
                 {
-                        case "CHAR":
+                        case STRING:
                                 odata = OraSimpleTypeDecoder.castVarchar(data);
                                 break;
-                        case "NUMBER":
+                        case NUMERIC:
                                 odata= OraSimpleTypeDecoder.castNumber(data);
                                 break;
-                        case "TIMESTAMP":
+                        case TIMESTAMP:
                                 odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
-                        case "LHCLOG.VECTORNUMERIC":
+                        case NUMERICARRAY:
                                 odata = OraArrayDecoder.castArray(data,"NUMERIC");
                                 break;
-			case "LHCLOG.VECTORSTRING":
+			case STRINGARRAY:
 				odata = OraArrayDecoder.castArray(data,"CHAR");
 				break;
-			case "LHCLOG.MATRIXNUMERIC":
+			case NUMERICMATRIX:
 				odata = OraArrayDecoder.castArray(data,"ARRAY(NUMERIC)");
 				break;
-                        case "LHCLOG.MATRIXSTRING":
+                        case STRINGMATRIX:
                                 odata = OraArrayDecoder.castArray(data,"ARRAY(CHAR)");
                                 break;
 
@@ -221,6 +223,7 @@ public class OraDataDecoder
 		List<Object> elements;
 		int arraySize=0;
 		int length=0;
+		int elementLength=0;
 
 		elements = new ArrayList<Object>();
 		for(int i=2;i<data.length;i++)
@@ -258,22 +261,29 @@ public class OraDataDecoder
                                                break;
 
 				case 3: //getting elements value
+					if(v==254)
+                                        {
+                                            elementLength=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
+                                            i+=4;
+                                        }
+                                        else
+                                            elementLength=v;
 					switch(type)
 					{
 						case "NUMERIC":
-							elements.add(OraSimpleTypeDecoder.castNumber(Arrays.copyOfRange(data, i+1, i+v+1)));
+							elements.add(OraSimpleTypeDecoder.castNumber(Arrays.copyOfRange(data, i+1, i+elementLength+1)));
 							break;
 						case "CHAR":
-							elements.add(OraSimpleTypeDecoder.castVarchar(Arrays.copyOfRange(data, i+1, i+v+1)));
+							elements.add(OraSimpleTypeDecoder.castVarchar(Arrays.copyOfRange(data, i+1, i+elementLength+1)));
 							break;
 						case "ARRAY(NUMERIC)":
-							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+v+1),"NUMERIC"));
+							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+elementLength+1),"NUMERIC"));
 							break;
 						case "ARRAY(CHAR)":
-							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+v+1),"CHAR"));
+							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+elementLength+1),"CHAR"));
 							break;
 					}
-					i+=v;
+					i+=elementLength;
 					break;
 			}
 		}

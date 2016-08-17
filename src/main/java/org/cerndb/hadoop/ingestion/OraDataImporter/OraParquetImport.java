@@ -69,6 +69,8 @@ public class OraParquetImport{
 	public static final String AVRO_CLASS_MAP = System.getProperty("avro_class_map", "").replace('\'','"');
         public static final String AVRO_TYPE_MAP = System.getProperty("avro_type_map", "").replace('\'','"');
         public static final String AVRO_NAME_MAP = System.getProperty("avro_name_map", "").replace('\'','"');
+        public static final String NAME_2_TYPE_MAP = System.getProperty("type_map", "");
+
 
 
 
@@ -141,16 +143,24 @@ public class OraParquetImport{
 	           SyncedResultSet sds = new SyncedResultSet(rs);	
 		
 		   
-		   //3. Infer result set schema
-		   Schema schema = SchemaFactory.inferSchema(rs);
+		   //3. Infer result set schema and initialize target dataset
+		
+		   Schema schema = SchemaFactory.inferSchema(rs,NAME_2_TYPE_MAP);
+//		   schema.parseMapping(NAME_2_TYPE_MAP);
                    System.out.println("Schema:");
-                   System.out.println(SchemaFactory.getAvroSchema(schema,AVRO_CLASS_MAP,AVRO_TYPE_MAP,AVRO_NAME_MAP));
+                   System.out.println(SchemaFactory.getAvroSchema(schema));
+                   
+		   //initializing dataset and verifying schema
+		   DataWriter dw = new DataWriter(schema);
+                     dw.InitDataset(OUTPUT_PATH, SchemaFactory.getAvroSchema(schema));
+                     dw.openWriter();
+		     dw.close();
 
 
+                   //4. Start threads
 
                    System.out.println("Starting threads");
 
-		   //4. Start threads
 		   List<WorkerThread> threadList = new ArrayList<WorkerThread>();
 
                    for (int i=0;i<THREADS;i++)
@@ -161,12 +171,12 @@ public class OraParquetImport{
                         if (i==0&&THREADS>1)
                         {
 				//wait to initialize dataset by the first thread
-			     try{
+/*			     try{
 
 				Thread.sleep(5000);
 			     }
                               catch (InterruptedException e){}
-
+*/
 				
                         }
 

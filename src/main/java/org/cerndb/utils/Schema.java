@@ -15,6 +15,7 @@ public class Schema
 {
 	public Map<Integer,SchemaElement > root = null;
 
+        public Map<String,DataType> name2type = null;
 	
 		
 	private void addElement(SchemaElement e)
@@ -22,6 +23,7 @@ public class Schema
 
 		if(root==null)
 			root = new HashMap<Integer, SchemaElement>();
+		e.elementInternalType=getInternalType(e);
 		root.put(root.size(),e);		
 	}
 	public void addElement(int position,String name,String type,String nativeType)
@@ -31,7 +33,32 @@ public class Schema
 		el.elementType=type;
 		el.elementNativeType=nativeType;
 		el.elementPosition=position;
+		el.elementInternalType=getInternalType(el);
 		addElement(el);
+	}
+	public void addMapping(String name, DataType type)
+	{
+		if(name2type==null)
+			name2type=new HashMap<String,DataType>();
+		name2type.put(name,type);	
+	}
+	public DataType getInternalType(SchemaElement e)
+	{
+		
+		if(name2type.containsKey(e.elementName))
+			return name2type.get(e.elementName);
+		return DataType.parse(e.elementType);
+	}
+	public void parseMapping(String mapping)
+	{
+		if (mapping==null||mapping=="") return;
+                for(String map: mapping.split(","))
+                {
+                        String[] parts = map.split(":");
+                        addMapping(parts[0],DataType.parse(parts[1]));
+
+                }
+ 
 	}
 
 }

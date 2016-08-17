@@ -17,10 +17,15 @@ import java.sql.ResultSetMetaData;
 public class SchemaFactory
 {
 
-	public static Schema inferSchema(ResultSet resultSet ) throws SQLException
+	public static Schema inferSchema(ResultSet resultSet ,String Smap) throws SQLException
 	{
 		Schema schema = new Schema();
+		schema.parseMapping(Smap);
+
 		schema.root = new HashMap<Integer, SchemaElement>();
+
+
+		
 
 		ResultSetMetaData meta = resultSet.getMetaData();
                 int ncols = meta.getColumnCount();
@@ -31,11 +36,7 @@ public class SchemaFactory
 		  
 		   SchemaElement col = new SchemaElement();
 		   schema.addElement(i,meta.getColumnLabel(i+1),meta.getColumnTypeName(i+1),meta.getColumnClassName(i+1));
-/*		   col.elementName=meta.getColumnLabel(i);
-		   col.elementType=meta.getColumnTypeName(i);
-		   col.elementNativeType=meta.getColumnClassName(i);
-                   col.elementPosition=i;
-		   schema.root.put(i,col);	*/
+		   
 		   System.out.println(schema.root.get(i).toString());
 				
 		 }
@@ -157,7 +158,75 @@ public class SchemaFactory
 		AvroSchema+="]}";
 
 		return AvroSchema;
-	}         
+	}
+	public static String getAvroSchema(Schema schema)
+	{
+		String namespace="cern.ch";
+                String recordName="record";
+                String recordType="record";
+		 String AvroSchema="{\n"+
+                "  \"namespace\" : \""+namespace+"\",\n"+
+                "  \"name\": \""+recordName+"\",\n"+
+                "  \"type\" :  \""+recordType+"\",\n"+
+                "  \"fields\" :\n[";
+		for (int i=0;i<schema.root.size();i++)
+                {
+			if(i!=0) AvroSchema+=",\n";
+			AvroSchema+="\t"+element2avro(schema.root.get(i));
+			
+		}
+		AvroSchema+="\n]\n}";
+
+                return AvroSchema;
+
+	}
+	public static String element2avro(SchemaElement e)
+	{
+		String avro="{"+
+		"\"name\":\""+e.elementName+"\","+
+		"\"type\":";
+		
+		switch(e.elementInternalType)
+		{
+			case NUMERIC:
+                                avro += "\"double\"";
+                                break;
+                        case STRING:
+                                avro += "\"string\"";
+                                break;
+                        case DECIMAL:
+                                avro +=  "\"long\"";
+                                break;
+                        case TIMESTAMP:
+                                avro += "\"double\"";
+                                break;
+                        case NUMERICARRAY:
+                                avro += "{\"type\":\"array\",\"items\":\"double\"}";
+                                break;
+                        case STRINGARRAY:
+                                avro += "{\"type\":\"array\",\"items\":\"string\"}";
+                                break;
+                        case NUMERICMATRIX:
+//                                avro += "{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"subarray\",\"fields\":[{\"name\":\"subitem\",\"type\":{\"type\":\"array\",\"items\":\"double\"}}]}}";
+                                avro += "{\"type\":\"array\",\"items\":{\"type\":\"array\",\"items\":\"double\"}}";
+
+
+                                break;
+                        case STRINGMATRIX:
+//                                avro = "{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"subarray\",\"fields\":[{\"name\":\"subitem\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}}";
+				avro += "{\"type\":\"array\",\"items\":{\"type\":\"array\",\"items\":\"string\"}}";
+
+
+                                break;
+
+		}
+		avro+="}";
+		return avro;	
+		
+		
+		
+		
+	}
 
 
 

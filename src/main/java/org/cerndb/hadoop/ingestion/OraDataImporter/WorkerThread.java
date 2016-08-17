@@ -94,7 +94,7 @@ public class WorkerThread implements Runnable {
             try{
 
 		     dw = new DataWriter(schema);
-                     dw.InitDataset(DatasetURI, SchemaFactory.getAvroSchema(schema,OraParquetImport.AVRO_CLASS_MAP,OraParquetImport.AVRO_TYPE_MAP,OraParquetImport.AVRO_NAME_MAP));
+                     dw.InitDataset(DatasetURI, SchemaFactory.getAvroSchema(schema));
 		     dw.openWriter();          
 	    }
 	    catch(IOException ioe)

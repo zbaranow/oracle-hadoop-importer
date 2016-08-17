@@ -16,11 +16,12 @@ public	class SchemaElement{
 	public String elementName;
 	public String elementType;
 	public String elementNativeType;
+	public DataType elementInternalType;
 	public int elementPosition;
 	
 	public String toString()
 	{
-		return elementPosition+": Name: "+elementName+" Type: "+elementType+" Native: "+elementNativeType;
+		return elementPosition+": Name: "+elementName+" Type: "+elementType+" Native: "+elementNativeType+" Internal: "+DataType.toString(elementInternalType);
 	}
 }
 
