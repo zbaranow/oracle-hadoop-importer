@@ -12,7 +12,8 @@ import java.util.HashMap;
 
 public	class SchemaElement{
 	public SchemaElement parent=null;
-	public Map<Integer,SchemaElement> children;
+	public SchemaElement child=null;
+//	public Map<Integer,SchemaElement> children;
 	public String elementName;
 	public String elementType;
 	public String elementNativeType;

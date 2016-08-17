@@ -124,8 +124,7 @@ import static org.apache.avro.generic.GenericData.Record;
 		for (int i=0; i<RowSchema.root.size(); i++)
 		{
 			try{
-//				builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i).elementType));
-                              builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i).elementInternalType));
+                              builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i)));
 				
 			}
 			catch(ArrayIndexOutOfBoundsException e)

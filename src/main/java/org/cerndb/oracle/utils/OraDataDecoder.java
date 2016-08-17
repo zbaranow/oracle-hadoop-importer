@@ -11,6 +11,7 @@ package org.cerndb.oracle.utils;
 
 
 import org.cerndb.utils.DataType;
+import org.cerndb.utils.SchemaElement;
 
 //JDBC
 import oracle.sql.*;
@@ -40,10 +41,10 @@ import java.util.TimeZone;
 
 public class OraDataDecoder
    {
-	 public static Object castColType(byte[] data,DataType type)
+	 public static Object castColType(byte[] data,SchemaElement el)
         {
                 Object odata=null;
-                switch(type)
+                switch(el.elementInternalType)
                 {
                         case STRING:
                                 odata = OraSimpleTypeDecoder.castVarchar(data);
@@ -57,8 +58,8 @@ public class OraDataDecoder
                         case TIMESTAMP:
                                 odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
-                        case NUMERICARRAY:
-                                odata = OraArrayDecoder.castArray(data,"NUMERIC");
+/*                        case NUMERICARRAY:
+                                odata = OraArrayDecoder.castArray(data,);
                                 break;
 			case STRINGARRAY:
 				odata = OraArrayDecoder.castArray(data,"CHAR");
@@ -69,6 +70,10 @@ public class OraDataDecoder
                         case STRINGMATRIX:
                                 odata = OraArrayDecoder.castArray(data,"ARRAY(CHAR)");
                                 break;
+*/
+			case ARRAY:
+				odata = OraArrayDecoder.castArray(data,el);
+			break;
 
 
                 }
@@ -213,13 +218,13 @@ public class OraDataDecoder
                        	System.out.println(i+"/"+data.length+": "+getInt(data[i]));
 		}              	
         }
-	public static List<Object> castArray(byte[] data,String type)
+	public static List<Object> castArray(byte[] data,SchemaElement el)
         {
-               return getList(data,type);
+               return getList(data,el);
         }
 
 
-	public static List<Object> getList(byte[] data,String type)
+	public static List<Object> getList(byte[] data,SchemaElement el)
 	{
 		int state = 0;
 		int v=0;
@@ -271,6 +276,7 @@ public class OraDataDecoder
                                         }
                                         else
                                             elementLength=v;
+					/*
 					switch(type)
 					{
 						case "NUMERIC":
@@ -286,6 +292,8 @@ public class OraDataDecoder
 							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+elementLength+1),"CHAR"));
 							break;
 					}
+					*/
+					elements.add(OraDataDecoder.castColType(Arrays.copyOfRange(data, i+1, i+elementLength+1),el.child));
 					i+=elementLength;
 					break;
 			}

@@ -49,7 +49,7 @@ public class SchemaFactory
 	}
 
 
-
+/*
 	private static void  parseCustomAvroMapping (String customMapping,Map<String,String> mapping)
 	{
 		if (customMapping==null||customMapping=="") return;
@@ -143,14 +143,14 @@ public class SchemaFactory
 			if(i!=0) AvroSchema+=",";
 			SchemaElement e = schema.root.get(i);
 		//	System.out.println(e.elementNativeType+" "+classMapping.get(e.elementNativeType));
-/*			String eType ="";
+			String eType ="";
 			if (classMapping.containsKey(e.elementNativeType))
 				eType=classMapping.get(e.elementNativeType);
 			if (typeMapping.containsKey(e.elementType))
 				eType=typeMapping.get(e.elementType);
 			if (nameMapping.containsKey(e.elementName))
 				eType=nameMapping.get(e.elementName);
-*/
+
 
 			AvroSchema+="{\"name\": \""+e.elementName+"\", \"type\":"+getAvroType(e,customClassMapping,customTypeMapping,customNameMapping)+"}";
 		}
@@ -159,6 +159,7 @@ public class SchemaFactory
 
 		return AvroSchema;
 	}
+*/
 	public static String getAvroSchema(Schema schema)
 	{
 		String namespace="cern.ch";
@@ -172,7 +173,7 @@ public class SchemaFactory
 		for (int i=0;i<schema.root.size();i++)
                 {
 			if(i!=0) AvroSchema+=",\n";
-			AvroSchema+="\t"+element2avro(schema.root.get(i));
+			AvroSchema+="\t"+element2avro(schema.root.get(i),false);
 			
 		}
 		AvroSchema+="\n]\n}";
@@ -180,11 +181,13 @@ public class SchemaFactory
                 return AvroSchema;
 
 	}
-	public static String element2avro(SchemaElement e)
+	public static String element2avro(SchemaElement e,boolean nested)
 	{
-		String avro="{"+
-		"\"name\":\""+e.elementName+"\","+
-		"\"type\":";
+		String avro="";
+		if(!nested)
+			avro+="{\"name\":\""+e.elementName+"\","+
+			"\"type\":";
+		
 		
 		switch(e.elementInternalType)
 		{
@@ -207,20 +210,17 @@ public class SchemaFactory
                                 avro += "{\"type\":\"array\",\"items\":\"string\"}";
                                 break;
                         case NUMERICMATRIX:
-//                                avro += "{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"subarray\",\"fields\":[{\"name\":\"subitem\",\"type\":{\"type\":\"array\",\"items\":\"double\"}}]}}";
                                 avro += "{\"type\":\"array\",\"items\":{\"type\":\"array\",\"items\":\"double\"}}";
-
-
                                 break;
                         case STRINGMATRIX:
-//                                avro = "{\"type\":\"array\",\"items\":{\"type\":\"record\",\"name\":\"subarray\",\"fields\":[{\"name\":\"subitem\",\"type\":{\"type\":\"array\",\"items\":\"string\"}}]}}";
 				avro += "{\"type\":\"array\",\"items\":{\"type\":\"array\",\"items\":\"string\"}}";
-
-
                                 break;
+			case ARRAY:
+				avro +="{\"type\":\"array\",\"items\":"+element2avro(e.child,true)+"}";
+				break;
 
 		}
-		avro+="}";
+		if(!nested) avro+="}";
 		return avro;	
 		
 		

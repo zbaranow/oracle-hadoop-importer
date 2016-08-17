@@ -33,7 +33,7 @@ public class Schema
 		el.elementType=type;
 		el.elementNativeType=nativeType;
 		el.elementPosition=position;
-		el.elementInternalType=getInternalType(el);
+		setInternalType(el);
 		addElement(el);
 	}
 	public void addMapping(String name, DataType type)
@@ -49,16 +49,67 @@ public class Schema
 			return name2type.get(e.elementName);
 		return DataType.parse(e.elementType);
 	}
+	public void setInternalType(SchemaElement e)
+	{
+		if(name2type.containsKey(e.elementName))
+			e.elementInternalType=name2type.get(e.elementName);
+		if(e.elementInternalType==DataType.ARRAY)
+		{
+			int i=1;
+			SchemaElement se=e;
+			while(name2type.containsKey(e.elementName+i))
+			{
+				SchemaElement sne = new SchemaElement();
+				sne.elementName=e.elementName+i;
+				sne.elementInternalType=name2type.get(e.elementName+i);
+				se.child=sne;
+				se=sne;
+				i++;
+			}
+		}
+	}
 	public void parseMapping(String mapping)
 	{
 		if (mapping==null||mapping=="") return;
-                for(String map: mapping.split(","))
+                for(String map: mapping.trim().split(","))
                 {
                         String[] parts = map.split(":");
-                        addMapping(parts[0],DataType.parse(parts[1]));
+			if(!parts[1].toUpperCase().contains("ARRAY"))
+			{
+				DataType p = DataType.parse(parts[1]);
+			
+                        	addMapping(parts[0],DataType.parse(parts[1].trim()));
+			}
+			else  //It is an array
+			{
+                                addMapping(parts[0],DataType.ARRAY);
+
+				boolean done=false;
+				String subpart=parts[1].toUpperCase();
+				int i=1;
+				while(!done)
+				{
+					done=true;
+					subpart = removeBruckets(subpart);
+					if(subpart.contains("ARRAY"))
+					{
+						done=false;
+						addMapping(parts[0]+i,DataType.ARRAY);
+					}
+					else
+	               	                	addMapping(parts[0]+i,DataType.parse(subpart.trim()));
+					i++;
+				}
+
+				
+			}
 
                 }
  
+	}
+	private String removeBruckets(String input)
+	{
+		return input.substring(input.indexOf('(')+1,input.lastIndexOf(')'));
 	}
 
 }
