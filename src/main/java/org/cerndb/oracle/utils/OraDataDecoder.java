@@ -53,7 +53,7 @@ public class OraDataDecoder
                                 odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
                         case "LHCLOG.VECTORNUMERIC":
-                                odata = OraArrayDecoder.castArray(data,"NUMRIC");
+                                odata = OraArrayDecoder.castArray(data,"NUMERIC");
                                 break;
 			case "LHCLOG.VECTORSTRING":
 				odata = OraArrayDecoder.castArray(data,"CHAR");

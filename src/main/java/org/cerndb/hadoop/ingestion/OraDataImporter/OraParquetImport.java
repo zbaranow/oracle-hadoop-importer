@@ -16,6 +16,9 @@ import org.cerndb.oracle.utils.DBSession;
 import org.cerndb.oracle.utils.SyncedResultSet;
 import org.cerndb.utils.Statistics;
 import org.cerndb.utils.StatType;
+import org.cerndb.utils.SchemaFactory;
+import org.cerndb.utils.Schema;
+
 
 //JDBC
 import java.sql.ResultSet;
@@ -57,12 +60,17 @@ public class OraParquetImport{
 
 	private static final int THREADS = Integer.parseInt(System.getProperty("parallel", "1"));
 	private static final String SQL = System.getProperty("sql", "Null");
-	private static final String OUTPUT_PATH = System.getProperty("outputDir", "Null");
+	public static final String OUTPUT_PATH = System.getProperty("outputDir", "Null");
 	private static final String DB_URI = System.getProperty("jdbcURI", "Null");
 	private static final String DB_SCHEMA = System.getProperty("schema", "Null");
 	private static final String DB_PASS = System.getProperty("password", "Null");
 	private static final int DB_FETCH_SIZE = Integer.parseInt(System.getProperty("fetch_size", "10000"));
         public static final int THREAD_BATCH_SIZE = Integer.parseInt(System.getProperty("batch_size", "10000"));
+	public static final String AVRO_CLASS_MAP = System.getProperty("avro_class_map", "").replace('\'','"');
+        public static final String AVRO_TYPE_MAP = System.getProperty("avro_type_map", "").replace('\'','"');
+        public static final String AVRO_NAME_MAP = System.getProperty("avro_name_map", "").replace('\'','"');
+
+
 
 
 
@@ -72,6 +80,8 @@ public class OraParquetImport{
         public static void main(String[] argv) {
 
                 OraParquetImport imp = new OraParquetImport();
+
+		System.out.println(AVRO_TYPE_MAP);
 		
 		//parameter checks
 		if(SQL.equals("Null")||OUTPUT_PATH.equals("Null")||DB_URI.equals("Null")||DB_SCHEMA.equals("Null")||DB_PASS.equals("Null"))
@@ -132,6 +142,11 @@ public class OraParquetImport{
 		
 		   
 		   //3. Infer result set schema
+		   Schema schema = SchemaFactory.inferSchema(rs);
+                   System.out.println("Schema:");
+                   System.out.println(SchemaFactory.getAvroSchema(schema,AVRO_CLASS_MAP,AVRO_TYPE_MAP,AVRO_NAME_MAP));
+
+
 
                    System.out.println("Starting threads");
 
@@ -140,7 +155,7 @@ public class OraParquetImport{
 
                    for (int i=0;i<THREADS;i++)
                    {
-                        WorkerThread t = new WorkerThread("Thread-"+i,sds,OUTPUT_PATH);
+                        WorkerThread t = new WorkerThread("Thread-"+i,sds,schema);
 			threadList.add(t);
                         t.start();
                         if (i==0&&THREADS>1)
@@ -207,7 +222,7 @@ public class OraParquetImport{
 		}
 		else
 		{
-                        System.out.println("JOB FAILED SUCCESSFULLY!");
+                        System.out.println("JOB FAILED!");
 
 		}
         }

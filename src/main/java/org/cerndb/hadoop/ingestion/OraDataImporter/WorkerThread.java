@@ -12,6 +12,9 @@ package org.cerndb.hadoop.ingestion.OraDataImporter;
 
 //Home made tools
 import org.cerndb.oracle.utils.SyncedResultSet;
+import org.cerndb.utils.Schema;
+import org.cerndb.utils.SchemaFactory;
+
 
 
 
@@ -37,7 +40,8 @@ public class WorkerThread implements Runnable {
 	private Thread t;
 	private String threadName;
 	private SyncedResultSet sds;
-        private String DatasetURI;
+	private Schema schema;
+        private String DatasetURI=OraParquetImport.OUTPUT_PATH;
 
 	private boolean writeData=true;
 	private boolean readData=true;
@@ -47,14 +51,15 @@ public class WorkerThread implements Runnable {
 	private static int threads_started=0; 
 	private static boolean terminateAll=false;
 
+
         private int batchSize=OraParquetImport.THREAD_BATCH_SIZE;
 
 
-      public WorkerThread(String name,SyncedResultSet s,String URI) throws IOException{
+      public WorkerThread(String name,SyncedResultSet s,Schema sch) throws IOException{
         threadName = name;
         sds=s;
-	DatasetURI=URI;
-        System.out.println("Creating " +  threadName );
+	schema=sch;
+        //System.out.println("Creating " +  threadName );
       }
       public static int getSuccessfulThreads()
       {
@@ -88,8 +93,8 @@ public class WorkerThread implements Runnable {
 	    DataWriter dw;
             try{
 
-		     dw = new DataWriter(sds.RowSchema);
-                     dw.InitDataset(DatasetURI, sds.getAvroSchema());
+		     dw = new DataWriter(schema);
+                     dw.InitDataset(DatasetURI, SchemaFactory.getAvroSchema(schema,OraParquetImport.AVRO_CLASS_MAP,OraParquetImport.AVRO_TYPE_MAP,OraParquetImport.AVRO_NAME_MAP));
 		     dw.openWriter();          
 	    }
 	    catch(IOException ioe)
@@ -97,22 +102,22 @@ public class WorkerThread implements Runnable {
 		System.out.println(ioe.getMessage());
 		return;
 	    }
-            catch (SQLException sqle)
+            /*catch (SQLException sqle)
 	    {
 		System.out.println(sqle.getMessage());
 		return;
-	    }
+	    }*/
             try{
  
             
-                 byte[][][] rows = new byte[batchSize][sds.ncols][];
+                 byte[][][] rows = new byte[batchSize][schema.root.size()][];
                  int rows_num=batchSize;
 
                  while(rows_num == batchSize&&!terminateAll ){ 
 			rows_num = sds.nextRow(rows, batchSize,readData);
 			for(int i = 0; i < rows_num; i++){
-				byte[][] rowcols = new byte[sds.ncols][];
-				for(int j=0; j <sds.ncols; j++){
+				byte[][] rowcols = new byte[schema.root.size()][];
+				for(int j=0; j <schema.root.size(); j++){
 					
                                         rowcols[j] =  rows[i][j];
                                         

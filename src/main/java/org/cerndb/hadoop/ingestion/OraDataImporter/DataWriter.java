@@ -9,7 +9,12 @@
 package org.cerndb.hadoop.ingestion.OraDataImporter;
 
 
-import org.cerndb.oracle.util.OraDataDecoder;
+import org.cerndb.oracle.utils.OraDataDecoder;
+import org.cerndb.utils.SchemaFactory;
+import org.cerndb.utils.SchemaElement;
+import org.cerndb.utils.Schema;
+
+
 
 
 
@@ -58,14 +63,14 @@ import static org.apache.avro.generic.GenericData.Record;
 	DatasetWriter<Record> writer;
 	GenericRecordBuilder builder;
         private String DataSetURI,Schema;
-	private  Map<Integer, HashMap<String,String>> RowSchema;
+	private Schema RowSchema;
 
        DataWriter(String URI){
 	DataSetURI = URI;
 	}
 
-	DataWriter( Map<Integer, HashMap<String,String>> RowS) {
-		RowSchema = RowS;
+	DataWriter( Schema schema) {
+		RowSchema = schema;
 	}
 
        public void setDataSetURI(String URI) {DataSetURI = URI;}
@@ -121,10 +126,10 @@ import static org.apache.avro.generic.GenericData.Record;
 
 	public void write(byte[][] cols)
 	{
-		for (int i=0; i<RowSchema.size(); i++)
+		for (int i=0; i<RowSchema.root.size(); i++)
 		{
 			try{
-				builder.set(RowSchema.get(i+1).get("name"),OraDataDecoder.castColType(cols[i],RowSchema.get(i+1).get("type")));
+				builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i).elementType));
 			}
 			catch(ArrayIndexOutOfBoundsException e)
 			{
