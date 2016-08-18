@@ -93,8 +93,8 @@ public class WorkerThread implements Runnable {
 	    DataWriter dw;
             try{
 
-		     dw = new DataWriter(schema);
-                     dw.InitDataset(DatasetURI, SchemaFactory.getAvroSchema(schema));
+		     dw = new DataWriter();
+                     dw.InitDataset(DatasetURI, schema);
 		     dw.openWriter();          
 	    }
 	    catch(IOException ioe)

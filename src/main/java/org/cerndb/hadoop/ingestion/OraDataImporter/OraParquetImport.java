@@ -146,15 +146,14 @@ public class OraParquetImport{
 		   //3. Infer result set schema and initialize target dataset
 		
 		   Schema schema = SchemaFactory.inferSchema(rs,NAME_2_TYPE_MAP);
-//		   schema.parseMapping(NAME_2_TYPE_MAP);
                    System.out.println("Schema:");
                    System.out.println(SchemaFactory.getAvroSchema(schema));
                    
 		   //initializing dataset and verifying schema
-		   DataWriter dw = new DataWriter(schema);
-                     dw.InitDataset(OUTPUT_PATH, SchemaFactory.getAvroSchema(schema));
-                     dw.openWriter();
-		     dw.close();
+		   DataWriter dw = new DataWriter();
+                   dw.InitDataset(OUTPUT_PATH, schema);
+                   dw.openWriter();
+		   dw.close();
 
 
                    //4. Start threads

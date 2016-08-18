@@ -58,19 +58,9 @@ public class OraDataDecoder
                         case TIMESTAMP:
                                 odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
-/*                        case NUMERICARRAY:
-                                odata = OraArrayDecoder.castArray(data,);
+			case TIMESTAMP_LONG:
+				odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
-			case STRINGARRAY:
-				odata = OraArrayDecoder.castArray(data,"CHAR");
-				break;
-			case NUMERICMATRIX:
-				odata = OraArrayDecoder.castArray(data,"ARRAY(NUMERIC)");
-				break;
-                        case STRINGMATRIX:
-                                odata = OraArrayDecoder.castArray(data,"ARRAY(CHAR)");
-                                break;
-*/
 			case ARRAY:
 				odata = OraArrayDecoder.castArray(data,el);
 			break;
@@ -130,7 +120,6 @@ public class OraDataDecoder
                 {
                         e.printStackTrace();
                 }
-//              System.out.println(date+"="+(unixtime+nano));
                 return (Object) (unixtime+nano);
 
 	}
@@ -156,7 +145,6 @@ public class OraDataDecoder
                 for (int i=0;i<data.length;i++)
                 {
                         value=getInt(data[i]);
-//                      System.out.println(value);
                         if(i==0)
                         {
                            if (value==128) return 0;
@@ -168,7 +156,6 @@ public class OraDataDecoder
                            }
                            else
                            {
-//                              System.out.println();
                                 positive=false;
                                 exp=63-value;
                                 number="-";
@@ -276,25 +263,11 @@ public class OraDataDecoder
                                         }
                                         else
                                             elementLength=v;
-					/*
-					switch(type)
-					{
-						case "NUMERIC":
-							elements.add(OraSimpleTypeDecoder.castNumber(Arrays.copyOfRange(data, i+1, i+elementLength+1)));
-							break;
-						case "CHAR":
-							elements.add(OraSimpleTypeDecoder.castVarchar(Arrays.copyOfRange(data, i+1, i+elementLength+1)));
-							break;
-						case "ARRAY(NUMERIC)":
-							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+elementLength+1),"NUMERIC"));
-							break;
-						case "ARRAY(CHAR)":
-							elements.add(OraArrayDecoder.castArray(Arrays.copyOfRange(data, i+1, i+elementLength+1),"CHAR"));
-							break;
-					}
-					*/
+
 					elements.add(OraDataDecoder.castColType(Arrays.copyOfRange(data, i+1, i+elementLength+1),el.child));
+
 					i+=elementLength;
+
 					break;
 			}
 		}

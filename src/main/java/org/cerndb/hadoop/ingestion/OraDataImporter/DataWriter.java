@@ -64,49 +64,46 @@ import static org.apache.avro.generic.GenericData.Record;
 	DatasetWriter<Record> writer;
 	GenericRecordBuilder builder;
         private String DataSetURI,Schema;
-	private Schema RowSchema;
-
-       DataWriter(String URI){
-	DataSetURI = URI;
-	}
-
-	DataWriter( Schema schema) {
-		RowSchema = schema;
-	}
-
-//       public void setDataSetURI(String URI) {DataSetURI = URI;}
-//       public void setAvroSchema(String AvroSchema) {Schema = AvroSchema;}
+	private Schema schema;
 
 
-       public void CreateDataset() throws IOException{
 
-		ds = Datasets.create(
-	        DataSetURI, dsd, Record.class);
-		System.out.println("Dataset created");		
+
+
+       public static  Dataset<Record> CreateDataset(String path,DatasetDescriptor dd) throws IOException{
+
+		Dataset<Record> dataset = Datasets.create(
+	        path, dd, Record.class);
+		System.out.println("Dataset "+path+"created with schema:\n"+dd.getSchema().toString());		
+		return dataset;
 		
        }
-       public void InitDataset(String URI,String AvroSchema) throws IOException
+       //check if exists, if not creates a new one
+       public void InitDataset(String URI,Schema sch) throws IOException
        {
 		//Initializing fields
 		 DataSetURI=URI;
-		 Schema=AvroSchema;
+		 schema=sch;
 
 		dsd = new DatasetDescriptor.Builder()
-                .schemaLiteral(AvroSchema)
+                .schemaLiteral(SchemaFactory.getAvroSchema(schema))
                 .format(Formats.PARQUET)
                 .compressionType(CompressionType.Snappy)
                 .build();
 
-		synchronized(this){
-			try{
-			//check if exists
-				ds=Datasets.load(DataSetURI,Record.class);
-			}
-			catch(Exception e)
-			{	
-				CreateDataset();
+		if(Datasets.exists(DataSetURI))
+		{
+			ds=Datasets.load(DataSetURI,Record.class);
+			if(!ds.getDescriptor().getSchema().toString().equals(dsd.getSchema().toString()))
+			{
+				
+				throw new IOException("Dataset "+DataSetURI+" exists but has different schema\n"+
+				"Loaded schema:\n"+ds.getDescriptor().getSchema().toString()+
+				"\nDesired schema:\n"+dsd.getSchema().toString());
 			}
 		}
+		else 
+			ds=CreateDataset(DataSetURI,dsd);
        }
 
        public DatasetWriter<Record> openWriter(){
@@ -121,10 +118,10 @@ import static org.apache.avro.generic.GenericData.Record;
 
 	public void write(byte[][] cols)
 	{
-		for (int i=0; i<RowSchema.root.size(); i++)
+		for (int i=0; i<schema.root.size(); i++)
 		{
 			try{
-                              builder.set(RowSchema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],RowSchema.root.get(i)));
+                              builder.set(schema.root.get(i).elementName,OraDataDecoder.castColType(cols[i],schema.root.get(i)));
 				
 			}
 			catch(ArrayIndexOutOfBoundsException e)
