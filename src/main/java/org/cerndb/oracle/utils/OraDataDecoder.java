@@ -43,6 +43,8 @@ public class OraDataDecoder
    {
 	 public static Object castColType(byte[] data,SchemaElement el)
         {
+		if (data==null||data.length==0) return null;//null value
+
                 Object odata=null;
                 switch(el.elementInternalType)
                 {
@@ -77,7 +79,13 @@ public class OraDataDecoder
  class OraSimpleTypeDecoder
    {
 
-	
+	 public static void dumpBytes(byte[] data)
+	 {
+		 for(int i = 0; i < data.length ; i ++ ){
+                        System.out.println(i+"/"+data.length+": "+getInt(data[i]));
+                }
+
+	 }
 	 public static Object castTimestamp(byte[] data){
                 String date="";
                 double nano;
@@ -130,7 +138,17 @@ public class OraDataDecoder
 
 	public static Object castNumber(byte[] data)
 	{
-		NUMBER n = new NUMBER(data);
+		NUMBER n=null;
+		//check if number is nulled
+		if (data.length==2&&getInt(data[0])==193&&getInt(data[1])==1) return null;
+		try{
+			n = new NUMBER(data);
+		}
+		catch(NullPointerException ne)
+		{
+			dumpBytes(data)	;
+			throw ne;
+		}
 		return n.doubleValue();
 	}
 		
@@ -246,25 +264,34 @@ public class OraDataDecoder
 					break;
 				case 2: //geting elements number						
 					if(v==254)
-                                               {
-                                                  length=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
-                                                   i+=4;
-                                               }
-                                               else
-                                                  length=v;
-                                               state=3;
-                                               break;
-
-				case 3: //getting elements value
-					if(v==254)
                                         {
-                                            elementLength=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
-                                            i+=4;
+                                             length=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
+                                             i+=4;
                                         }
                                         else
-                                            elementLength=v;
+                                           length=v;
 
-					elements.add(OraDataDecoder.castColType(Arrays.copyOfRange(data, i+1, i+elementLength+1),el.child));
+                                        state=3;
+
+                                        break;
+
+				case 3: //getting elements value
+					if(v==255)
+					{
+					    elementLength=0;
+//						elements.add(null);
+					}
+					else
+						if(v==254)
+	                                        {
+	                                            elementLength=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
+	                                            i+=4;
+	                                        }
+	                                        else
+	                                            elementLength=v;
+
+						elements.add(OraDataDecoder.castColType(Arrays.copyOfRange(data, i+1, i+elementLength+1),el.child));
+					
 
 					i+=elementLength;
 

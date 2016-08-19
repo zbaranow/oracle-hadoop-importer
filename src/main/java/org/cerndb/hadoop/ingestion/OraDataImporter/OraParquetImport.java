@@ -126,8 +126,8 @@ public class OraParquetImport{
 
 		//1. Opening connection to db
 		DBSession connection = new DBSession();
-		connection.OraConnect(DB_URI,DB_SCHEMA,DB_PASS);
-                
+		connection.Connect(DB_URI,DB_SCHEMA,DB_PASS);
+                connection.fetchSize=DB_FETCH_SIZE;
 		ResultSet rs = null;
 
 		//initializing statistics
@@ -167,26 +167,18 @@ public class OraParquetImport{
                         WorkerThread t = new WorkerThread("Thread-"+i,sds,schema);
 			threadList.add(t);
                         t.start();
-                        if (i==0&&THREADS>1)
-                        {
-				//wait to initialize dataset by the first thread
-/*			     try{
-
-				Thread.sleep(5000);
-			     }
-                              catch (InterruptedException e){}
-*/
-				
-                        }
 
 
                    }
                    stats.updateStat("RowsLoaded",WorkerThread.getStats(),StatType.CUMULATIVE);
 	   
-		   boolean terminated=false;
 		   //watch loop; checking if all threads finished; collecting and printing runtime stats   
-		   while(!terminated)
+
+		   int terminatedCount=0;
+
+		   while(terminatedCount<THREADS)
 		   {
+			terminatedCount=0;
 			try{
 				Thread.sleep(10000);
 			}
@@ -194,29 +186,34 @@ public class OraParquetImport{
 
 			stats.updateStat("RowsLoaded",WorkerThread.getStats(),StatType.CUMULATIVE);
 			System.out.println(stats.getFormattedStat("RowsLoaded"));
-			terminated=true;
+			
 			for (WorkerThread th : threadList)
 			{
-				if(th.getState()!=Thread.State.TERMINATED)
+				if(th.getState()==Thread.State.TERMINATED)
 				{
-					terminated=false;
-					break;
+					terminatedCount++;
 				}
 
+
 			}//for
+
+			//break if one thread failed
+			if(WorkerThread.getSuccessfulThreads()!=terminatedCount)
+			{
+				WorkerThread.terminateAll();	
+			}
+				
+
 		   }//while
                 }//try
                 catch (SQLException e) {
                         System.out.println("Failed to execute statement! "+ e.toString());
                         System.exit(1);
                 }
-                //catch(ParseException e)
-//              {}
                 finally {
                      connection.close();
-//                     System.out.println("Job finished");
                 }
-
+		//Give 5s to kite to finish writing correctly.
 		 try{
                                 Thread.sleep(5000);
                 }
@@ -233,6 +230,8 @@ public class OraParquetImport{
 		else
 		{
                         System.out.println("JOB FAILED!");
+			System.exit(1);
+
 
 		}
         }

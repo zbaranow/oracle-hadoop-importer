@@ -18,11 +18,12 @@ public	class SchemaElement{
 	public String elementType;
 	public String elementNativeType;
 	public DataType elementInternalType;
+	public boolean nullable=false;
 	public int elementPosition;
 	
 	public String toString()
 	{
-		return elementPosition+": Name: "+elementName+" Type: "+elementType+" Native: "+elementNativeType+" Internal: "+DataType.toString(elementInternalType);
+		return elementPosition+": Name: "+elementName+" Type: "+elementType+" Native: "+elementNativeType+" Internal: "+DataType.toString(elementInternalType)+" Nullable: "+String.valueOf(nullable);
 	}
 }
 

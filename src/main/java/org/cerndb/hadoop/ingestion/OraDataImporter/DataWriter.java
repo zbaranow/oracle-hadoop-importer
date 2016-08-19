@@ -74,7 +74,7 @@ import static org.apache.avro.generic.GenericData.Record;
 
 		Dataset<Record> dataset = Datasets.create(
 	        path, dd, Record.class);
-		System.out.println("Dataset "+path+"created with schema:\n"+dd.getSchema().toString());		
+		System.out.println("====>Dataset *** "+path+" *** created with schema:\n"+dd.getSchema().toString());		
 		return dataset;
 		
        }
@@ -126,12 +126,14 @@ import static org.apache.avro.generic.GenericData.Record;
 			}
 			catch(ArrayIndexOutOfBoundsException e)
 			{
-				System.out.println(new String(cols[0],StandardCharsets.UTF_8));
+//				System.out.println(new String(cols[0],StandardCharsets.UTF_8));
+				dumpRow(cols);
 				throw e;
 			}
 			catch (NullPointerException npe)
 			{
-				System.out.println(new String(cols[0],StandardCharsets.UTF_8));
+//				System.out.println(new String(cols[i],StandardCharsets.UTF_8));
+				dumpRow(cols);
 
 				throw npe;
 			}
@@ -139,6 +141,41 @@ import static org.apache.avro.generic.GenericData.Record;
 		writer.write(builder.build());
 		
 	}
+	private void dumpRow(byte[][] data)
+	{
+		System.out.println("DATA DUMP:");
+		for (int i=0; i<schema.root.size(); i++)
+		{
+		 	System.out.println("COL"+i+":");
+			dumpBytes(data[i]);
+			System.out.println("Decoded value:");
+			String val="ERROR! <=====================";
+			try{
+				val = OraDataDecoder.castColType(data[i],schema.root.get(i)).toString();
+			}
+			catch(ArrayIndexOutOfBoundsException e)
+			{}
+			catch(NullPointerException npe)
+			{}
+			System.out.println(val);
+			
+		}
+	}
+	public static void dumpBytes(byte[] data)
+         {
+                 for(int i = 0; i < data.length ; i ++ ){
+                        System.out.println(i+"/"+data.length+": "+getInt(data[i]));
+                }
+
+         }
+	public static int getInt(byte b)
+        {
+                return b & 0xFF;
+
+        }
+
+	
+
 
         public void close(){
 		writer.close();

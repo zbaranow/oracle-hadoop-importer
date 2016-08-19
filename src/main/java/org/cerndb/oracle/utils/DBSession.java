@@ -42,10 +42,16 @@ import java.util.Date;
 public class DBSession
 {
 	Connection connection=null;
+	Connection diag=null;
 	PreparedStatement pstmt=null;
+//	private int sid,instance;
+//	private string sch,pass,uri;
+	public int fetchSize=1000;
+
 	
-	public void OraConnect(String URI,String schema,String password)
+	public static Connection OraConnect(String URI,String schema,String password)
 	{
+		Connection c=null;
 		try {
 
                         Class.forName("oracle.jdbc.driver.OracleDriver");
@@ -59,7 +65,7 @@ public class DBSession
                 }
 		try {
 
-                        connection = DriverManager.getConnection(URI,schema,password);
+                        c = DriverManager.getConnection(URI,schema,password);
 
                 } catch (SQLException e) {
 
@@ -69,19 +75,28 @@ public class DBSession
 
                 }
 
-                if (connection != null) {
+                if (c != null) {
                 } else {
                         System.out.println("Failed to make connection!");
                         System.exit(1);
                 }
-
+		return c;
 		
 		
 
 	}
+	public void Connect(String URI,String schema,String password)
+	{
+//		sch=schema;
+//		pass=password;
+//		uri=URI;
+		connection=OraConnect(URI,schema,password);
+//		getConnectionInfo();
+	}
 	public ResultSet execute(String sql) throws SQLException
 	{
 	     pstmt = connection.prepareStatement(sql);
+	     pstmt.setFetchSize(fetchSize);
              if(pstmt.execute())
   	        return pstmt.getResultSet();
              return null;
@@ -94,6 +109,34 @@ public class DBSession
 			execute("alter session set \"_serial_direct_read\"=false");
 
 	}
+/*
+	private void getConnectionInfo()
+	{
+		try{
+			ResultSet rs = execute("select sys_context('USERENV','INSTANCE') inst_id,sys_context('USERENV','SID') sid from dual");
+			rs.next();
+			instance=rs.getInt(1);
+			sid=rs.getInt(2);
+	
+		}
+		catch(SQLException se)
+		{
+			System.out.println("Failed to get connection info");
+		}
+		
+		
+	}
+	public void getConnectionStats(Map<String,int> stats)
+	{
+		String sql = "select STATISTIC#,value from v$sesstat where sid=:1 and statistic# in (";
+		int i=0;
+		for (String stat : stats.keySet()) {
+		    if (i!=0)
+			sql+=",";
+ 		    
+		}
+	}
+*/
 	public void close()
 	{
 	        try{

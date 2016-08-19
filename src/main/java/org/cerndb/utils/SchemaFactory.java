@@ -77,7 +77,10 @@ public class SchemaFactory
 			avro+="{\"name\":\""+e.elementName+"\","+
 			"\"type\":";
 		
-		
+		if(e.nullable)
+		{
+			avro+="[";
+		}	
 		switch(e.elementInternalType)
 		{
 			case NUMERIC:
@@ -99,6 +102,10 @@ public class SchemaFactory
 				avro +="{\"type\":\"array\",\"items\":"+element2avro(e.child,true)+"}";
 				break;
 
+		}
+		if(e.nullable)
+		{
+		    avro+=",\"null\"]";
 		}
 		if(!nested) avro+="}";
 		return avro;	
