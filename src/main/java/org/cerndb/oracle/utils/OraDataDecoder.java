@@ -12,6 +12,7 @@ package org.cerndb.oracle.utils;
 
 import org.cerndb.utils.DataType;
 import org.cerndb.utils.SchemaElement;
+//import org.cerndb.hadoop.ingestion.OraDataImporter.WorkerThread;
 
 //JDBC
 import oracle.sql.*;
@@ -41,6 +42,11 @@ import java.util.TimeZone;
 
 public class OraDataDecoder
    {
+	public static long ARRAY_NULLS_DISCARDED=0;
+
+
+	 public static String null_action=System.getProperty("action_when_null", "-9990999");
+
 	 public static Object castColType(byte[] data,SchemaElement el)
         {
 		if (data==null||data.length==0) return null;//null value
@@ -139,17 +145,25 @@ public class OraDataDecoder
 	public static Object castNumber(byte[] data)
 	{
 		NUMBER n=null;
+		Double  val= null;
+
 		//check if number is nulled
-		if (data.length==2&&getInt(data[0])==193&&getInt(data[1])==1) return null;
+		if ( data==null || 
+		    data.length==0 ||
+		    ( data.length==2 & getInt(data[0])==193 && getInt(data[1])==1 )
+		) return val;
+
 		try{
 			n = new NUMBER(data);
+			val=n.doubleValue();
+			
 		}
 		catch(NullPointerException ne)
 		{
 			dumpBytes(data)	;
 			throw ne;
 		}
-		return n.doubleValue();
+		return val;
 	}
 		
         public static Object castNumber2(byte[] data){
@@ -216,7 +230,6 @@ public class OraDataDecoder
 //TBD: automatic detection of types (probably 2 integer in array header)
  class OraArrayDecoder
    {
-	
 	public static void dumpRawArray(byte[] data)
        	{
                	for(int i = 0; i < data.length ; i ++ ){
@@ -231,19 +244,20 @@ public class OraDataDecoder
 
 	public static List<Object> getList(byte[] data,SchemaElement el)
 	{
-		int state = 0;
+		int state = 1;
 		int v=0;
 		List<Object> elements;
 		int arraySize=0;
 		int length=0;
 		int elementLength=0;
 
+		Object element=null;
 		elements = new ArrayList<Object>();
 		for(int i=2;i<data.length;i++)
 		{
 			v=getInt(data[i]);
 			switch(state){
-				case 0: //getting length
+				case 1: //getting length
 					if(v==254)
 					{
 					    arraySize=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
@@ -251,18 +265,27 @@ public class OraDataDecoder
 					}
 					else
 					    arraySize=v;
-					state=1;
-			                break;
-				case 1: //length initialized
+			//		state=1;
+			//                break;
+			//	case 1: //length initialized
 					if(arraySize==data.length) state=2;
 					else {
 	                                         dumpRawArray(data);
 						 v=data[-1];  //something went wrong,raise an exception
-						 dumpRawArray(data);
 					}
-					i+=4; //we do not know what the next number is
 					break;
-				case 2: //geting elements number						
+				case 2:
+					//some bytes to be skipped - TO BE CHECK WHAT IS THE MEANING
+					i+=v+1;
+					if(getInt(data[i])==0)  
+						state=3;
+					else
+					{
+						System.out.print(i+":"+getInt(data[i]));
+						v=data[-1];//raise exception
+					}
+					break;
+				case 3: //geting elements number						
 					if(v==254)
                                         {
                                              length=(new BigInteger(Arrays.copyOfRange(data,i+1,i+5))).intValue();
@@ -271,15 +294,14 @@ public class OraDataDecoder
                                         else
                                            length=v;
 
-                                        state=3;
+                                        state=4;
 
                                         break;
 
-				case 3: //getting elements value
+				case 4: //getting elements value
 					if(v==255)
 					{
 					    elementLength=0;
-//						elements.add(null);
 					}
 					else
 						if(v==254)
@@ -289,8 +311,28 @@ public class OraDataDecoder
 	                                        }
 	                                        else
 	                                            elementLength=v;
-
-						elements.add(OraDataDecoder.castColType(Arrays.copyOfRange(data, i+1, i+elementLength+1),el.child));
+						
+						element=OraDataDecoder.castColType(Arrays.copyOfRange(data, i+1, i+elementLength+1),el.child);
+						if (element!=null)
+						{
+							elements.add(element);		
+						}
+						else 
+						if(OraDataDecoder.null_action.equals("DISCARD")) //IGNORING NULL ==> Kite does not support null values in arrays
+						{
+							length--;
+							OraDataDecoder.ARRAY_NULLS_DISCARDED++;
+							System.out.println("NULL element in array discareded!!!!!!!<===============================");
+						}
+						else if(OraDataDecoder.null_action.equals("DISCARD_ROW"))
+						{
+							
+						}
+						else
+						{
+							OraDataDecoder.ARRAY_NULLS_DISCARDED++;
+							elements.add(Double.parseDouble(OraDataDecoder.null_action));
+						}
 					
 
 					i+=elementLength;

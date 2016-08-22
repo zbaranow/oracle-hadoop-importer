@@ -219,6 +219,9 @@ public class OraParquetImport{
                 }
                 catch (InterruptedException e){}
                 System.out.println(stats.getFormattedStat("RowsLoaded"));
+		
+		if(OraDataDecoder.ARRAY_NULLS_DISCARDED>0)
+                        System.out.println(OraDataDecoder.ARRAY_NULLS_DISCARDED+" NULL VALUES HAVE BEEN DISCARDED !!!!!!");
 
 		//Job done - final checks
 

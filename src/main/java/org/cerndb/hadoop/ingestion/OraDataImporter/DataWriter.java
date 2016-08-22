@@ -56,6 +56,7 @@ import org.kitesdk.data.Datasets;
 import org.kitesdk.data.Formats;
 import org.kitesdk.data.CompressionType;
 import static org.apache.avro.generic.GenericData.Record;
+import org.kitesdk.data.DatasetOperationException;
 
    class DataWriter{
 
@@ -138,7 +139,15 @@ import static org.apache.avro.generic.GenericData.Record;
 				throw npe;
 			}
 		}
-		writer.write(builder.build());
+		try
+		{
+			writer.write(builder.build());
+		}
+		catch(DatasetOperationException e)
+		{
+			dumpRow(cols);
+			throw e;
+		}
 		
 	}
 	private void dumpRow(byte[][] data)
