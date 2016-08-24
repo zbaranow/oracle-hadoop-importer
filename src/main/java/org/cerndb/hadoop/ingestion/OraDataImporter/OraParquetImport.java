@@ -115,7 +115,17 @@ public class OraParquetImport{
 	public static void printHelp()
 	{
 		String text="\n"+
-			"Usage: Command -Dsql=<text> -DjdbcURI=<text> -DoutputDir=<text> [-D..options..]";
+			"Usage: Command -Dsql=<text> -DjdbcURI=<text> -DoutputDir=<text> -Dschema -Dpassword [-D..options..]\n\n"+
+			"Options:\n"+
+			"\t-Dsql\t SQL statement\tthe result of thestatement will be imported\n"+
+			"\t-DjdbcURI\tJDBC connection string\tthe connection string to be use to connect to the source\n"+
+			"\t-Dschema\ttarget database schema name\tschema that is priviledged to execute the SQL on target objects\n"+
+			"\t-Dpassword\tschema password\n"+
+			"\t-Dfetch_size\tfetching array size\tshould be big for short rows\n"+
+			"\t-Dparallel\tclient side parallelizm\tnumber of threads that are processing the jdbc source\n"+
+			"\t-Dbatch_size\tprocessing array size\tnumber of rows to be processed by a thread in a single interation\n"+
+			"\t-Dtype_map\tcomma-separated list of column to type mappings\t Available types: DECIMAL,NUMERIC,TIMESTAMP,STRING,ARRAY,ARRAY(<TYPE>)\t";
+
 		System.out.println(text);
 	}
         public void run(String[] argv) throws IOException, NumberFormatException
