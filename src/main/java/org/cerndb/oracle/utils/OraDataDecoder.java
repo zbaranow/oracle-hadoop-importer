@@ -57,18 +57,31 @@ public class OraDataDecoder
                         case STRING:
                                 odata = OraSimpleTypeDecoder.castVarchar(data);
                                 break;
-                        case NUMERIC:
+
+                        case INT:
                                 odata= OraSimpleTypeDecoder.castNumber(data);
                                 break;
-			case DECIMAL:
+
+			case LONG:
+                                odata= OraSimpleTypeDecoder.castNumber(data);
+                                break;
+
+			case FLOAT:
 				odata= OraSimpleTypeDecoder.castNumber(data);
                                 break;
+	
+			case DOUBLE:
+				odata= OraSimpleTypeDecoder.castNumber(data);
+				break;
+
                         case TIMESTAMP:
                                 odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
+
 			case TIMESTAMP_LONG:
 				odata = OraSimpleTypeDecoder.castTimestamp(data);
                                 break;
+
 			case ARRAY:
 				odata = OraArrayDecoder.castArray(data,el);
 			break;

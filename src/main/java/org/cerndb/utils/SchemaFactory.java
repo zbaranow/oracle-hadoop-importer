@@ -83,13 +83,19 @@ public class SchemaFactory
 		}	
 		switch(e.elementInternalType)
 		{
-			case NUMERIC:
+			case DOUBLE:
                                 avro += "\"double\"";
                                 break;
+			case FLOAT:
+				avro += "\"float\"";
+				break;
                         case STRING:
                                 avro += "\"string\"";
                                 break;
-                        case DECIMAL:
+			case INT:
+				avro += "\"int\"";
+				break;
+                        case LONG:
                                 avro +=  "\"long\"";
                                 break;
                         case TIMESTAMP:
