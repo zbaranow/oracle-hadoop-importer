@@ -18,15 +18,19 @@ Type Mapping Syntax: COLUMN_NAME:TYPE
 - TYPE - internal type definition like [N#]INTERNAL_TYPE , where N# indicates is nullable
 
 List of possible INTERNAL_TYPES:
+- NUMBER -> maps to a double in parquet
 - DECIMAL -> maps to a long in parquet
+- CHAR -> maps to a string in parquet
+- FLOAT -> maps to a float in parquet
+- LONG -> maps to a long in parquet
 - INT -> maps to a integer32 in parquet
-- STRING  
+- STRING  -> maps to a string in parquet
 - TIMESTAMP -> maps to a double in parquet (up to nanosecond precision)
 - TIMESTAMP_LONG -> maps to a long (milisecond precision)
 - ARRAY(TYPE)
 
 
-##Example
+##Example 1
 Importing an array of numbers
 
 `/java -cp ./target/OraDataImporter-1.0-SNAPSHOT.jar
@@ -38,6 +42,36 @@ Importing an array of numbers
 -Dparallel=1 \
 -DfetchSize=1000 \
 -DbatchSize=1000 \
--Dtype_map="COL1:N#ARRAY(N#NUMERIC)" \
+-Dtype_map="COL1:N#ARRAY(N#NUMBER)" \
+org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport`
+
+
+##Example 2
+Importing a dynamic view 
+`java -cp $JAR_NAME:$(hadoop classpath) \
+-Dsql="select m.*,d.utc_stamp,d.destination from log.meta_fundamental m,og.data_fundamental d where m.FUNDAMENTAL_ID=d.FUNDAMENTAL_ID" \
+-DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" \
+-DoutputDir=dataset:hdfs:/tmp/test5 \
+-Dschema=scot  \
+-Dpassword=tiger \
+-Dparallel=6 \
+-DfetchSize=10000 \
+-DbatchSize=10000 \
+-Dtype_map="FUNDAMENTAL_ID:DECIMAL,FUNDAMENTAL_NAME:STRING,FUNDAMENTAL_TYPE:N#STRING,UTC_STAMP:TIMESTAMP,DESTINATION:N#STRING" \
+org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport
+`
+
+##Example 3
+Importing a matrix of numbers
+`java -cp $JAR_NAME:$(hadoop classpath) \
+-Dsql="select variable_id,utc_stamp,value from log.$TABLE_NAME partition($PARTITION_NAME)" \
+-DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" \
+-DoutputDir=dataset:hdfs:/tmp/test5 \
+-Dschema=scot  \
+-Dpassword=tiger \
+-Dparallel=1 \
+-DfetchSize=1000 \
+-DbatchSize=1000 \
+-Dtype_map="VALUE:ARRAY(ARRAY(NUMERIC)),VARIABLE_ID:DECIMAL" \
 org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport`
 
