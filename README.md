@@ -64,7 +64,7 @@ org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport
 ##Example 3
 Importing a matrix of numbers
 
-`java -cp $JAR_NAME:$(hadoop classpath) 
+```java -cp $JAR_NAME:$(hadoop classpath) 
 -Dsql="select variable_id,utc_stamp,value from log.$TABLE_NAME partition($PARTITION_NAME)" 
 -DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" 
 -DoutputDir=dataset:hdfs:/tmp/test5 
@@ -74,5 +74,5 @@ Importing a matrix of numbers
 -DfetchSize=1000 
 -DbatchSize=1000 
 -Dtype_map="VALUE:ARRAY(ARRAY(NUMERIC)),VARIABLE_ID:DECIMAL" 
-org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport`
+org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport```
 
