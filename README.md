@@ -48,30 +48,30 @@ org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport`
 
 ##Example 2
 Importing a dynamic view 
-`java -cp $JAR_NAME:$(hadoop classpath) \
--Dsql="select m.*,d.utc_stamp,d.destination from log.meta_fundamental m,og.data_fundamental d where m.FUNDAMENTAL_ID=d.FUNDAMENTAL_ID" \
--DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" \
--DoutputDir=dataset:hdfs:/tmp/test5 \
--Dschema=scot  \
--Dpassword=tiger \
--Dparallel=6 \
--DfetchSize=10000 \
--DbatchSize=10000 \
--Dtype_map="FUNDAMENTAL_ID:DECIMAL,FUNDAMENTAL_NAME:STRING,FUNDAMENTAL_TYPE:N#STRING,UTC_STAMP:TIMESTAMP,DESTINATION:N#STRING" \
+`java -cp $JAR_NAME:$(hadoop classpath) 
+-Dsql="select m.*,d.utc_stamp,d.destination from log.meta_fundamental m,og.data_fundamental d where m.FUNDAMENTAL_ID=d.FUNDAMENTAL_ID" 
+-DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" 
+-DoutputDir=dataset:hdfs:/tmp/test5 
+-Dschema=scot  
+-Dpassword=tiger 
+-Dparallel=6 
+-DfetchSize=10000 
+-DbatchSize=10000 
+-Dtype_map="FUNDAMENTAL_ID:DECIMAL,FUNDAMENTAL_NAME:STRING,FUNDAMENTAL_TYPE:N#STRING,UTC_STAMP:TIMESTAMP,DESTINATION:N#STRING" 
 org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport
 `
 
 ##Example 3
 Importing a matrix of numbers
-`java -cp $JAR_NAME:$(hadoop classpath) \
--Dsql="select variable_id,utc_stamp,value from log.$TABLE_NAME partition($PARTITION_NAME)" \
--DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" \
--DoutputDir=dataset:hdfs:/tmp/test5 \
--Dschema=scot  \
--Dpassword=tiger \
--Dparallel=1 \
--DfetchSize=1000 \
--DbatchSize=1000 \
--Dtype_map="VALUE:ARRAY(ARRAY(NUMERIC)),VARIABLE_ID:DECIMAL" \
+`java -cp $JAR_NAME:$(hadoop classpath) 
+-Dsql="select variable_id,utc_stamp,value from log.$TABLE_NAME partition($PARTITION_NAME)" 
+-DjdbcURI="jdbc:oracle:thin:@db_host:1521/MY_DB_SERVICE.CERN.CH" 
+-DoutputDir=dataset:hdfs:/tmp/test5 
+-Dschema=scot  
+-Dpassword=tiger 
+-Dparallel=1 
+-DfetchSize=1000 
+-DbatchSize=1000 
+-Dtype_map="VALUE:ARRAY(ARRAY(NUMERIC)),VARIABLE_ID:DECIMAL" 
 org.cerndb.hadoop.ingestion.OraDataImporter.OraParquetImport`
 
